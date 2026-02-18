@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Booking Service API
+  description: API для управления записями клиентов
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: Client
+  - name: Barber
+
+components:
+  parametrs:
+    BarberQuery:
+      name: barber_id
+      in: query
+      required: false
+      schema:
+        type: UUID
+      description: Идентификатор барбера
+    DateQuery:
+      name: date
+      in: query
+      required: false
+      schema:
+        type: time.Date
+      description: Дата
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [ error ]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - ACTIVE_BOOKINGS_EXISTS
+                - INVALID_DATA
+                - SERVER_ERROR
+                - NOT_FOUND
+            message:
+              type: string
+      example:
+        error:
+          code: ACTIVE_Booking_EXISTS
+          message: client already have active booking
+    Booking:
+      type: object
+      required: [ barber_id, serv_id, date, time_start, time_end ]
+      properties:
+        barber_id:
+          type: UUID
+        serv_id:
+          type: uint
+        date:
+          type: time.Date
+          format: "dd.mm.yyyy"
+        time_start:
+          type: time.Time
+        time_end:
+          type: time.Time
+    WorkDay:
+      type: object
+      required: [ barber_id, date, work_start, work_end, priority ]
+      properties:
+        barber_id:
+          type: uint
+        date:
+          type: time.Date
+          format: "dd.mm.yyyy"
+        work_start:
+          type: time.Time
+        work_end:
+          type: time.Time
+        priority:
+          type: int
+        
+paths:
+  /api/:
+    post:
+      tags: [ Client, Barber ]
+      summary: Создать новую запись
+      body:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+      responses:
+        '201':
+          description: Запись создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/Booking'
+        '409':
+          description: У пользователя уже есть активная запись
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: ACTIVE_BOOKing_EXISTS
+        '500':
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: SERVER_ERROR
+        '400':
+          description: Переданы невалидные данные
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: INVALID_DATA
+  /api/{booking_id}:
+    get:
+      tags: [ Client ]
+      summary: Посмотреть свою активную запись
+      responses:
+        '200':
+          description: Запись найдена и возвращена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/Booking'
+        '404':
+          description: Несуществующий id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: NOT_FOUND
+        '500':
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: SERVER_ERROR
+  /api/{booking_id}:
+    put:
+      tags: [ Barber ]
+      summary: Редактировать существующую запись клиента
+      body:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+      responses:
+        '200':
+          description: Запись обновлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/Booking'
+        '404':
+          description: Несуществующий id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: NOT_FOUND
+        '500':
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: SERVER_ERROR
+        '400':
+          description: Переданы невалидные данные
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: INVALID_DATA
+  /api/{booking_id}:
+    delete:
+      tags: [ Client, Barber ]
+      summary: удалить запись
+      responses:
+        '200':
+          description: Запись удалена
+        '404':
+          description: Несуществующий id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: NOT_FOUND
+        '500':
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: SERVER_ERROR
+  /api/shedule:
+    get:
+      tags: [ Barber ]
+      summary: Получить расписание
+      query:
+        parametrs:
+          - $ref: '#/components/parameters/BarberQuery'
+          - $ref: '#/components/parameters/DateQuery'
+      responses:
+        '200':
+          description: Расписание получено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/Day'
+        '404':
+          description: Несуществующий барбер
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: NOT_FOUND
+        '500':
+          description: Серверная ошибка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: SERVER_ERROR
+        '400':
+          description: Передана невалидная дата
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              code: INVALID_DATA
